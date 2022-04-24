@@ -16,6 +16,14 @@ import (
 	"github.com/rcrowley/go-metrics"
 )
 
+type AddrConverter func(string) string
+
+var converter AddrConverter
+
+func RegisterAddrConverter(_converter AddrConverter) {
+	converter = _converter
+}
+
 // Broker represents a single Kafka broker connection. All operations on this object are entirely concurrency-safe.
 type Broker struct {
 	conf *Config
@@ -285,6 +293,12 @@ func (b *Broker) GetMetadata(request *MetadataRequest) (*MetadataResponse, error
 		return nil, err
 	}
 
+	if converter != nil {
+		for i := 0; i < len(response.Brokers); i++ {
+			response.Brokers[i].addr = converter(response.Brokers[i].addr)
+		}
+	}
+	
 	return response, nil
 }
 
