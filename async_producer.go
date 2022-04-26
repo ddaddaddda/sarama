@@ -123,7 +123,12 @@ type asyncProducer struct {
 
 // NewAsyncProducer creates a new AsyncProducer using the given broker addresses and configuration.
 func NewAsyncProducer(addrs []string, conf *Config) (AsyncProducer, error) {
-	client, err := NewClient(addrs, conf)
+	return NewAsyncProducerWithAddConverter(addrs, conf, nil)
+}
+
+// NewAsyncProducer creates a new AsyncProducer using the given broker addresses and configuration.
+func NewAsyncProducerWithAddConverter(addrs []string, conf *Config, converter AddrConverter) (AsyncProducer, error) {
+	client, err := NewClientWithAddrConvertor(addrs, conf, converter)
 	if err != nil {
 		return nil, err
 	}

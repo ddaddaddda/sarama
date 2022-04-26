@@ -21,7 +21,7 @@ func ExampleBroker() {
 	}
 
 	request := MetadataRequest{Topics: []string{"myTopic"}}
-	response, err := broker.GetMetadata(&request)
+	response, err := broker.GetMetadata(&request, nil)
 	if err != nil {
 		_ = broker.Close()
 		panic(err)
@@ -758,7 +758,7 @@ var brokerTestTable = []struct {
 		[]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 		func(t *testing.T, broker *Broker) {
 			request := MetadataRequest{}
-			response, err := broker.GetMetadata(&request)
+			response, err := broker.GetMetadata(&request, nil)
 			if err != nil {
 				t.Error(err)
 			}

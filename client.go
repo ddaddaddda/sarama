@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+type AddrConverter func(string) string
+
 // Client is a generic Kafka client. It manages connections to one or more Kafka brokers.
 // You MUST call Close() on a client to avoid leaks, it will not be garbage-collected
 // automatically when it passes out of scope. It is safe to share a client amongst many
@@ -75,6 +77,8 @@ type Client interface {
 	// OffsetNewest for the offset of the message that will be produced next, or a time.
 	GetOffset(topic string, partitionID int32, time int64) (int64, error)
 
+	AddrConverter(addr string) string
+
 	// Coordinator returns the coordinating broker for a consumer group. It will
 	// return a locally cached value if it's available. You can call
 	// RefreshCoordinator to update the cached value. This function only works on
@@ -132,12 +136,11 @@ type client struct {
 	cachedPartitionsResults map[string][maxPartitionIndex][]int32
 
 	lock sync.RWMutex // protects access to the maps that hold cluster state.
+
+	addrConvertor func(string) string
 }
 
-// NewClient creates a new Client. It connects to one of the given broker addresses
-// and uses that broker to automatically fetch metadata on the rest of the kafka cluster. If metadata cannot
-// be retrieved from any of the given broker addresses, the client is not created.
-func NewClient(addrs []string, conf *Config) (Client, error) {
+func NewClientWithAddrConvertor(addrs []string, conf *Config, addrConvertor func(string) string) (Client, error) {
 	Logger.Println("Initializing new client")
 
 	if conf == nil {
@@ -161,6 +164,7 @@ func NewClient(addrs []string, conf *Config) (Client, error) {
 		metadataTopics:          make(map[string]none),
 		cachedPartitionsResults: make(map[string][maxPartitionIndex][]int32),
 		coordinators:            make(map[string]int32),
+		addrConvertor:           addrConvertor,
 	}
 
 	client.randomizeSeedBrokers(addrs)
@@ -185,6 +189,13 @@ func NewClient(addrs []string, conf *Config) (Client, error) {
 	Logger.Println("Successfully initialized new client")
 
 	return client, nil
+}
+
+// NewClient creates a new Client. It connects to one of the given broker addresses
+// and uses that broker to automatically fetch metadata on the rest of the kafka cluster. If metadata cannot
+// be retrieved from any of the given broker addresses, the client is not created.
+func NewClient(addrs []string, conf *Config) (Client, error) {
+	return NewClientWithAddrConvertor(addrs, conf, nil)
 }
 
 func (client *client) Config() *Config {
@@ -501,6 +512,13 @@ func (client *client) GetOffset(topic string, partitionID int32, time int64) (in
 	}
 
 	return offset, err
+}
+
+func (client *client) AddrConverter(addr string) string {
+	if client.addrConvertor != nil {
+		return client.addrConvertor(addr)
+	}
+	return addr
 }
 
 func (client *client) Controller() (*Broker, error) {
@@ -890,7 +908,7 @@ func (client *client) tryRefreshMetadata(topics []string, attemptsRemaining int,
 		} else if client.conf.Version.IsAtLeast(V0_10_0_0) {
 			req.Version = 1
 		}
-		response, err := broker.GetMetadata(req)
+		response, err := broker.GetMetadata(req, client.AddrConverter)
 		switch err := err.(type) {
 		case nil:
 			allKnownMetaData := len(topics) == 0

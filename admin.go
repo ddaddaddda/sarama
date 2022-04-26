@@ -262,7 +262,7 @@ func (ca *clusterAdmin) DescribeTopics(topics []string) (metadata []*TopicMetada
 		request.Version = 4
 	}
 
-	response, err := controller.GetMetadata(request)
+	response, err := controller.GetMetadata(request, ca.client.AddrConverter)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func (ca *clusterAdmin) DescribeCluster() (brokers []*Broker, controllerID int32
 		request.Version = 1
 	}
 
-	response, err := controller.GetMetadata(request)
+	response, err := controller.GetMetadata(request, ca.client.AddrConverter)
 	if err != nil {
 		return nil, int32(0), err
 	}
@@ -324,7 +324,7 @@ func (ca *clusterAdmin) ListTopics() (map[string]TopicDetail, error) {
 	_ = b.Open(ca.client.Config())
 
 	metadataReq := &MetadataRequest{}
-	metadataResp, err := b.GetMetadata(metadataReq)
+	metadataResp, err := b.GetMetadata(metadataReq, ca.client.AddrConverter)
 	if err != nil {
 		return nil, err
 	}

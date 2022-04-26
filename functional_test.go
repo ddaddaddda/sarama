@@ -1,4 +1,5 @@
-//+build functional
+//go:build functional
+// +build functional
 
 package sarama
 
@@ -310,7 +311,7 @@ func prepareTestTopics(ctx context.Context, env *testEnvironment) error {
 		time.Sleep(1 * time.Second)
 		md, err := controller.GetMetadata(&MetadataRequest{
 			Topics: testTopicNames,
-		})
+		}, nil)
 		if err != nil {
 			return fmt.Errorf("failed to get metadata for test topics: %w", err)
 		}

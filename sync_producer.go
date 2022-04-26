@@ -39,6 +39,10 @@ type syncProducer struct {
 
 // NewSyncProducer creates a new SyncProducer using the given broker addresses and configuration.
 func NewSyncProducer(addrs []string, config *Config) (SyncProducer, error) {
+	return NewSyncProducerWithAddrConverter(addrs, config, nil)
+}
+
+func NewSyncProducerWithAddrConverter(addrs []string, config *Config, converter AddrConverter) (SyncProducer, error) {
 	if config == nil {
 		config = NewConfig()
 		config.Producer.Return.Successes = true
@@ -48,7 +52,7 @@ func NewSyncProducer(addrs []string, config *Config) (SyncProducer, error) {
 		return nil, err
 	}
 
-	p, err := NewAsyncProducer(addrs, config)
+	p, err := NewAsyncProducerWithAddConverter(addrs, config, converter)
 	if err != nil {
 		return nil, err
 	}
